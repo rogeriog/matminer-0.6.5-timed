@@ -346,10 +346,9 @@ class BaseFeaturizer(BaseEstimator, TransformerMixin, ABC):
                                        return_errors=return_errors,
                                        pbar=pbar, timetable=timetable)
         features=[feat[0] for feat in pooled_results]
-        if timetable is not None:
-            timetables=[timetable[1].timetable for timetable in pooled_results]
-            timetables=pd.concat(timetables)#.groupby(timetables.index).sum()
-            timetables=timetables.groupby(timetables.index).sum() 
+        timetables=[timetable[1].timetable for timetable in pooled_results]
+        timetables=pd.concat(timetables)#.groupby(timetables.index).sum()
+        timetables=timetables.groupby(timetables.index).sum() 
         # Make sure the dataframe can handle multiindices
         if multiindex:
             df = homogenize_multiindex(df, "Input Data")
