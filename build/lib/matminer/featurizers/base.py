@@ -17,6 +17,24 @@ from matminer.utils.utils import homogenize_multiindex
 
 import pandas as pd
 import time
+
+## functions needed for the timeout call
+import signal, time
+from contextlib import contextmanager
+
+class TimeoutException(Exception): pass
+
+@contextmanager
+def time_limit(seconds):
+    def signal_handler(signum, frame):
+        raise TimeoutException("Timed out!")
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+
 class TimeTable():
     def __init__(self):
         self.timetable= pd.DataFrame()
@@ -346,9 +364,10 @@ class BaseFeaturizer(BaseEstimator, TransformerMixin, ABC):
                                        return_errors=return_errors,
                                        pbar=pbar, timetable=timetable)
         features=[feat[0] for feat in pooled_results]
-        timetables=[timetable[1].timetable for timetable in pooled_results]
-        timetables=pd.concat(timetables)#.groupby(timetables.index).sum()
-        timetables=timetables.groupby(timetables.index).sum() 
+        if timetable is not None:
+            timetables=[timetable[1].timetable for timetable in pooled_results]
+            timetables=pd.concat(timetables)#.groupby(timetables.index).sum()
+            timetables=timetables.groupby(timetables.index).sum() 
         # Make sure the dataframe can handle multiindices
         if multiindex:
             df = homogenize_multiindex(df, "Input Data")
@@ -496,29 +515,53 @@ class BaseFeaturizer(BaseEstimator, TransformerMixin, ABC):
         Returns:
             (list) one or more features.
         """
+        column_names=[str(self)]
+        row_label=[str(x)]
         try:
             # Successful featurization returns nan for an error.
             if return_errors:
                 # Append operation must be agnostic to both ndarrays and lists
-                return list(self.featurize(*x)) + [float("nan")]
-            else:
-                start_time = time.perf_counter()
-                result = self.featurize(*x)
-                end_time = time.perf_counter()
-                total_time = end_time - start_time
-                column_names=[str(self)]
-                row_label=[str(x)]
+                result = list(self.featurize(*x)) + [float("nan")]
                 if timetable is not None:
-                    timetable.updateTable(total_time, column_names, row_label)
-                return (result,timetable)
+                    timetable.updateTable(float("nan"), column_names, row_label)
+                    return (result,timetable)
+                else:
+                    return result
+            else:
+                if timetable is not None:
+                    start_time = time.perf_counter()
+                    try: ## this function will stop calculation after 15s avoiding stuck calcs
+                        with time_limit(15):
+                            result = self.featurize(*x)
+                    except TimeoutException as e:
+                        print(f"Timed out! Structure: {x}")
+                        result = [float("nan")] * len(self.feature_labels())
+                    end_time = time.perf_counter()
+                    total_time = end_time - start_time
+                    if timetable is not None:
+                        timetable.updateTable(total_time, column_names, row_label)
+                    return (result,timetable)
+                else:
+                    result = self.featurize(*x)
+                    return result
         except BaseException as e:
             if ignore_errors:
+                column_names=[str(self)]
+                row_label=[str(x)]
                 if return_errors:
                     features = [float("nan")] * len(self.feature_labels())
                     error = traceback.format_exception(*sys.exc_info())
-                    return features + ["".join(error)]
+                    if timetable is not None:
+                        timetable.updateTable(float("nan"), column_names, row_label)
+                        return ( features + ["".join(error)], timetable )
+                    else:
+                        return features
                 else:
-                    return [float("nan")] * len(self.feature_labels())
+                    if timetable is not None:
+                        timetable.updateTable(float("nan"), column_names, row_label)
+                        return ( [float("nan")] * len(self.feature_labels()), timetable)
+                    else:
+                        return [float("nan")] * len(self.feature_labels())
             else:
                 msg = str(e)
                 msg += "\nTO SKIP THESE ERRORS when featurizing specific " \

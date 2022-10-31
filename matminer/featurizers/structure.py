@@ -77,7 +77,7 @@ class DensityFeatures(BaseFeaturizer):
         """
         self.features = ["density", "vpa", "packing fraction"] if not \
             desired_features else desired_features
-
+        self.desired_features= desired_features
     def precheck(self, s: Structure) -> bool:
         """
         Precheck a single entry. DensityFeatures does not work for disordered
@@ -148,7 +148,7 @@ class GlobalSymmetryFeatures(BaseFeaturizer):
         self.features = ["spacegroup_num", "crystal_system",
                          "crystal_system_int", "is_centrosymmetric"] if not \
             desired_features else desired_features
-
+        self.desired_features = desired_features
     def featurize(self, s):
         sga = SpacegroupAnalyzer(s)
         output = []
@@ -819,7 +819,7 @@ class OrbitalFieldMatrix(BaseFeaturizer):
             my_ohvs[Z] = np.matrix(my_ohvs[Z])
         self.ohvs = my_ohvs
         self.flatten = flatten
-
+        self.period_tag=period_tag
     def get_ohv(self, sp, period_tag):
         """
         Get the "one-hot-vector" for pymatgen Element sp. This 32 or 39-length

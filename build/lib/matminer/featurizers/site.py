@@ -214,6 +214,7 @@ class OPSiteFingerprint(BaseFeaturizer):
                  dist_exp=2, zero_ops=True):
         self.cn_target_motif_op = copy.deepcopy(cn_target_motif_op) \
             if target_motifs is None else copy.deepcopy(target_motifs)
+        self.target_motifs=target_motifs
         self.dr = dr
         self.ddr = ddr
         self.ndr = ndr
@@ -1452,6 +1453,8 @@ class ChemEnvSiteFingerprint(BaseFeaturizer):
         self.lgf = geom_finder
         self.max_csm = max_csm
         self.max_dist_fac = max_dist_fac
+        self.geom_finder = geom_finder
+        self.strategy = strategy
 
     def featurize(self, struct, idx):
         """
@@ -2082,7 +2085,9 @@ class BondOrientationalParameter(BaseFeaturizer):
         """
         self._nn = VoronoiNN(weight='solid_angle')
         self.max_l = max_l
+        self.compute_w = compute_w
         self.compute_W = compute_w
+        self.compute_w_hat = compute_w_hat
         self.compute_What = compute_w_hat
 
     def featurize(self, strc, idx):

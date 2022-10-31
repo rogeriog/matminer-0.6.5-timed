@@ -275,6 +275,7 @@ matminer/featurizers/dos.py
 matminer/featurizers/function.py
 matminer/featurizers/site.py
 matminer/featurizers/structure.py
+matminer/featurizers/timed_functions.py
 matminer/featurizers/tests/Cs2CeN5O17_mp-1198000_computed.cif
 matminer/featurizers/tests/Dy2HfS5_mp-1198001_computed.cif
 matminer/featurizers/tests/VBr2_971787_bandstructure.json
